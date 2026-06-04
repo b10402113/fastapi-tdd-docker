@@ -3,14 +3,17 @@ import logging
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings
-
+from pydantic import AnyUrl
 
 log = logging.getLogger("uvicorn")
+
+
 
 
 class Settings(BaseSettings):
     environment: str = "dev"
     testing: bool = 0
+    database_url: AnyUrl = None
 
 # LRU Cache 是什麼？
 # lru_cache 是 Python 內建標準函式庫 functools 模組提供的一個裝飾器 (Decorator)。
