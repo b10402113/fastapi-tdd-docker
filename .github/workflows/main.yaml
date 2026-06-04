@@ -6,28 +6,30 @@ permissions:
   contents: read
   packages: write
 
-env:
-  IMAGE: ghcr.io/$(echo $GITHUB_REPOSITORY | tr '[A-Z]' '[a-z]')/summarizer
-
 jobs:
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           ref: main
+
+      # Dynamically create the lowercase image name and save it to the env map
+      - name: Set lowercased image name env
+        run: |
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}/summarizer" >> $GITHUB_ENV
+
       - name: Log in to GitHub Packages
         run: echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_ACTOR} --password-stdin ghcr.io
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Pull image
         run: |
           docker pull ${{ env.IMAGE }}:latest || true
+
       - name: Build image
         run: |
           docker build \
@@ -35,6 +37,7 @@ jobs:
             --tag ${{ env.IMAGE }}:latest \
             --file ./project/Dockerfile.prod \
             "./project"
+
       - name: Push image
         run: |
           docker push ${{ env.IMAGE }}:latest
@@ -48,13 +51,21 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: main
+
+      # Repeat this step so the test job also has access to the correctly formatted variable
+      - name: Set lowercased image name env
+        run: |
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}/summarizer" >> $GITHUB_ENV
+
       - name: Log in to GitHub Packages
         run: echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_ACTOR} --password-stdin ghcr.io
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Pull image
         run: |
           docker pull ${{ env.IMAGE }}:latest || true
+
       - name: Build image
         run: |
           docker build \
@@ -62,6 +73,7 @@ jobs:
             --tag ${{ env.IMAGE }}:latest \
             --file ./project/Dockerfile.prod \
             "./project"
+
       - name: Run container
         run: |
           docker run \
@@ -73,11 +85,15 @@ jobs:
             -e DATABASE_TEST_URL=sqlite://sqlite.db \
             -p 5003:8765 \
             ${{ env.IMAGE }}:latest
+
       - name: Pytest
         run: docker exec fastapi-tdd python -m pytest .
+
       - name: Flake8
         run: docker exec fastapi-tdd python -m flake8 .
+
       - name: Black
         run: docker exec fastapi-tdd python -m black . --check
+
       - name: isort
         run: docker exec fastapi-tdd python -m isort . --check-only
