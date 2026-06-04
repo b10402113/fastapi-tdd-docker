@@ -1,6 +1,9 @@
 # pull official base image
 FROM python:3.13.3-slim-bookworm
 
+# Link this image to your specific GitHub repository to authorize GHCR pushes
+LABEL org.opencontainers.image.source="https://github.com/b10402113/fastapi-tdd-docker"
+
 # create directory for the app user
 RUN mkdir -p /home/app
 

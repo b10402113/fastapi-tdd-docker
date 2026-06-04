@@ -5,7 +5,7 @@ on: [push]
 permissions:
   contents: read
   packages: write
-
+  id-token: write # Add this for GHCR authentication
 jobs:
   build:
     name: Build Docker Image
